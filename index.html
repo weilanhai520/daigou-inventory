@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>代购库存</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">购</div>
+          <div>
+            <h1>代购库存</h1>
+            <p id="role-label">访客查看</p>
+          </div>
+        </div>
+
+        <nav class="nav-tabs" aria-label="主要页面">
+          <button class="tab-button active" data-tab="stock">在库</button>
+          <button class="tab-button admin-only" data-tab="inbound">入库</button>
+          <button class="tab-button admin-only" data-tab="outbound">出库</button>
+          <button class="tab-button admin-only" data-tab="records">明细</button>
+        </nav>
+
+        <div class="side-summary admin-only">
+          <span>库存成本</span>
+          <strong id="side-cost">¥0</strong>
+          <span>预计利润</span>
+          <strong id="side-profit">¥0</strong>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h2 id="page-title">在库商品</h2>
+            <p id="page-subtitle">查看当前可售商品、照片、库存和价格。</p>
+          </div>
+          <div class="top-actions">
+            <button class="ghost-button" id="admin-entry" type="button">管理员入口</button>
+            <button class="ghost-button admin-only" id="export-csv" type="button">导出表格</button>
+            <button class="danger-button admin-only" id="clear-data" type="button">清空数据</button>
+            <button class="ghost-button admin-only" id="logout-admin" type="button">退出管理</button>
+          </div>
+        </header>
+
+        <section class="notice">
+          <strong>非商业发布版</strong>
+          <span>访客只能查看在库商品。管理员登录后可入库、出库、导出和维护数据。</span>
+        </section>
+
+        <section class="metrics" aria-label="统计">
+          <article>
+            <span>在库数量</span>
+            <strong id="metric-qty">0</strong>
+          </article>
+          <article>
+            <span>在售款数</span>
+            <strong id="metric-kinds">0</strong>
+          </article>
+          <article class="admin-only">
+            <span>库存成本</span>
+            <strong id="metric-cost">¥0</strong>
+          </article>
+          <article class="admin-only">
+            <span>已实现利润</span>
+            <strong id="metric-realized">¥0</strong>
+          </article>
+        </section>
+
+        <section class="panel tab-panel active" id="stock-panel">
+          <div class="panel-head">
+            <div class="search-wrap">
+              <input id="search" type="search" placeholder="搜索商品名、备注、编号" />
+            </div>
+            <select id="sort-stock" aria-label="排序">
+              <option value="updated">最近更新</option>
+              <option value="name">商品名</option>
+              <option value="qty">库存数量</option>
+              <option value="price">卖出价格</option>
+            </select>
+          </div>
+
+          <div class="product-grid" id="product-grid"></div>
+
+          <div class="table-wrap admin-only">
+            <table>
+              <thead>
+                <tr>
+                  <th>商品</th>
+                  <th>数量</th>
+                  <th>买入价</th>
+                  <th>卖出价</th>
+                  <th>成本合计</th>
+                  <th>售价合计</th>
+                  <th>预计利润</th>
+                </tr>
+              </thead>
+              <tbody id="stock-body"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="stock-empty">还没有库存，管理员登录后可添加入库。</div>
+        </section>
+
+        <section class="panel tab-panel admin-only" id="inbound-panel">
+          <form id="inbound-form" class="entry-grid">
+            <div class="photo-box">
+              <video id="camera-preview" playsinline muted></video>
+              <canvas id="camera-canvas" hidden></canvas>
+              <img id="photo-preview" alt="商品照片预览" />
+              <div class="photo-actions">
+                <button type="button" class="ghost-button" id="start-camera">拍照</button>
+                <button type="button" class="ghost-button" id="take-photo" disabled>保存照片</button>
+                <label class="ghost-button file-label">
+                  上传
+                  <input id="photo-upload" type="file" accept="image/*" />
+                </label>
+              </div>
+              <button type="button" class="ghost-button full" id="read-code">识别条码</button>
+              <p class="hint" id="photo-hint">可拍照或上传图片保存到商品记录。文字 OCR 后续可以继续接入。</p>
+            </div>
+
+            <div class="form-fields">
+              <label>
+                商品名
+                <input id="in-name" required placeholder="例如：资生堂防晒" />
+              </label>
+              <label>
+                商品编号 / 条码
+                <input id="in-sku" placeholder="可选" />
+              </label>
+              <div class="two-col">
+                <label>
+                  数量
+                  <input id="in-qty" required type="number" min="1" step="1" value="1" />
+                </label>
+                <label>
+                  日期
+                  <input id="in-date" required type="date" />
+                </label>
+              </div>
+              <div class="two-col">
+                <label>
+                  买入单价
+                  <input id="in-buy" required type="number" min="0" step="0.01" placeholder="0.00" />
+                </label>
+                <label>
+                  卖出单价
+                  <input id="in-sell" required type="number" min="0" step="0.01" placeholder="0.00" />
+                </label>
+              </div>
+              <label>
+                备注
+                <textarea id="in-note" rows="3" placeholder="客户、购买地、颜色尺寸等"></textarea>
+              </label>
+              <div class="calc-line">
+                <span>本次成本：<strong id="in-cost-preview">¥0</strong></span>
+                <span>预计收入：<strong id="in-value-preview">¥0</strong></span>
+              </div>
+              <button class="primary-button" type="submit">添加入库</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel tab-panel admin-only" id="outbound-panel">
+          <form id="outbound-form" class="out-form">
+            <label>
+              选择商品
+              <select id="out-item" required></select>
+            </label>
+            <div class="two-col">
+              <label>
+                出库数量
+                <input id="out-qty" required type="number" min="1" step="1" value="1" />
+              </label>
+              <label>
+                日期
+                <input id="out-date" required type="date" />
+              </label>
+            </div>
+            <div class="two-col">
+              <label>
+                实际卖出单价
+                <input id="out-price" required type="number" min="0" step="0.01" />
+              </label>
+              <label>
+                客户
+                <input id="out-customer" placeholder="可选" />
+              </label>
+            </div>
+            <label>
+              备注
+              <textarea id="out-note" rows="3" placeholder="物流单号、付款状态等"></textarea>
+            </label>
+            <div class="calc-line">
+              <span>销售合计：<strong id="out-value-preview">¥0</strong></span>
+              <span>预计利润：<strong id="out-profit-preview">¥0</strong></span>
+            </div>
+            <button class="primary-button" type="submit">确认出库</button>
+          </form>
+        </section>
+
+        <section class="panel tab-panel admin-only" id="records-panel">
+          <div class="panel-head">
+            <select id="record-filter" aria-label="记录筛选">
+              <option value="all">全部记录</option>
+              <option value="in">只看入库</option>
+              <option value="out">只看出库</option>
+            </select>
+          </div>
+          <div class="records-list" id="records-list"></div>
+          <div class="empty-state" id="records-empty">暂无明细记录。</div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="admin-dialog" class="admin-dialog">
+      <form method="dialog" id="admin-form">
+        <h3>管理员登录</h3>
+        <p>输入管理员密码后，可以维护库存和查看成本利润。</p>
+        <label>
+          管理员密码
+          <input id="admin-password" type="password" autocomplete="current-password" required />
+        </label>
+        <div class="dialog-actions">
+          <button class="ghost-button" value="cancel" type="button" id="close-admin">取消</button>
+          <button class="primary-button" type="submit">进入管理</button>
+        </div>
+        <p class="form-message" id="admin-message"></p>
+      </form>
+    </dialog>
+
+    <template id="record-template">
+      <article class="record-card">
+        <img alt="" />
+        <div>
+          <div class="record-title">
+            <strong></strong>
+            <span></span>
+          </div>
+          <p></p>
+        </div>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
